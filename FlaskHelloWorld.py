@@ -10,7 +10,7 @@ import pika
 import redis
 
 
-@app.route('/<keyFileName>/')
+@app.route('/uploadFile/<keyFileName>/')
 def index(keyFileName):
     print("接受到的参数为： ", keyFileName)
     # 遍历Redis-key中的列表，放入RabbitMQ
@@ -52,6 +52,11 @@ def index(keyFileName):
     res = "调用成功呢！"
     return res
 
-# 下一步就是提取路径，实现访问这个文件夹2
+@app.route('/collectPapers')
+def collectPapers():
+    print("访问了这里哦")
+    return "OK"
 
-app.run()
+
+if __name__ == '__main__':
+    app.run()
