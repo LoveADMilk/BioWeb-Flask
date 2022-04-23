@@ -2,7 +2,11 @@ import os
 from PSSMConvert import PSSM
 
 from flask import Flask
+import time
+
 app = Flask(__name__)
+
+import json
 
 #!/usr/bin/python
 # -*- coding:utf-8 -*-
@@ -57,6 +61,44 @@ def collectPapers():
     print("访问了这里哦")
     return "OK"
 
+#   返回预测的状态信息
+@app.route('/getPredictStatus/<userId>/')
+def test(userId):
+    print("访问了这里哦 是异步调用")
+    username = 'guest'  # 指定远程rabbitMQ的用户名密码
+    pwd = 'guest'
+    # 消息队列服务的连接和队列的创建
+    credentials = pika.PlainCredentials(username, pwd)
+    connection = pika.BlockingConnection(pika.ConnectionParameters('127.0.0.1', 5672, '/', credentials))
+    channel = connection.channel()
+    # testqueue
+    channel.queue_declare(queue='testqueue2')
+    # JSON 方式传递信息，首先对象无法传递，其次JSON格式统一
+    # 由于使用的是异步调用，这里第一个消息是无法在前端显示的，可以做一个sleep
+    time.sleep(20)
+    data = {
+        'userId': userId,
+        'status': '这是来自Flask的消息: 状态信息（****1）',
+    }
+    # 延时后发送，防止消息传递比 建立webSocket早，也为了方便测试
+    # time.sleep(20)
+    data = json.dumps(data, ensure_ascii=False)
+    channel.basic_publish(exchange='',
+                          routing_key='testqueue2',
+                          body=data)
+    time.sleep(20)
+    data = {
+        'userId': userId,
+        'status': '这是来自Flask的消息: 状态信息（****2）',
+    }
+    # 延时后发送，防止消息传递比 建立webSocket早，也为了方便测试
+    # time.sleep(20)
+    data = json.dumps(data, ensure_ascii=False)
+    channel.basic_publish(exchange='',
+                          routing_key='testqueue2',
+                          body=data)
+
+    return "OK"
 
 if __name__ == '__main__':
     app.run()

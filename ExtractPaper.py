@@ -52,11 +52,13 @@ class Paper():
         periodicalTime_reg = re.compile(r'<div class="gs_a">.*?- (.*?)</div>')
         # 引用次数
         quteNum_reg = re.compile(r'<div class="gs_fl">.*?hl=zh-CN">被引用次数：(.*?)</a>')
-        # 每10为1页 ,由于前两页已经完成 爬取所以设置为20开始
-        start_num = 0
+        # 每10为1页 ,由于前1页已经完成 爬取所以设置为20开始
+        start_num = 30
         # 每10页为1组
         for i in range(0, 10):
+            print("开始休眠600秒")
             time.sleep(600)  # 休眠600秒，没爬取1页休眠600秒，防止被ban
+            print("600秒休眠结束")
             datalist = []
             url = start_url + str(start_num) + end_url
             start_num = start_num + 10
@@ -69,85 +71,89 @@ class Paper():
             #  find_all() 方法的返回结果是值包含一个元素的列表
             # div<class="gs_r gs_or gs_scl"> 该div是包含当前论文信息的最大div
             # 按照Google学术的页面格式,该返回值列表 长度应该是10
-            for item in soup.find_all('div', class_="gs_r gs_or gs_scl"):
-                data = []
-                item_str = str(item)
-                # 有可能不存在PDF链接
-                if re.findall(downLoadFileExist_reg, item_str) == []:
-                    downLoadFilelink = ''
-                else:
-                    # PDF链接
-                    downLoadFilelink = re.findall(downLoadFileLink_reg, item_str)[0]  # re通过正则表达式查找指定的字符串
-                # 文章部分内容
-                content_str = re.findall(content_reg, item_str)[0]
-
-                fileLink = re.findall(fileLink_reg, content_str)[0]
-
-                fileName1 = re.findall(fileName_reg, content_str)
-
-                # 由于存在HTML格式的文件，所以在此特殊判断，先不对HTML的进行爬取
-                if len(fileName1) == 0:
-                    # for aName in item.find('h3', class_="gs_rt").find('a'):
-                    #     data.append(aName)
-                    # print(aName)
-                    # print("---")
-                    continue
-                else:
-                    fileName = re.findall(fileName_reg, content_str)[0]
-
-                    fileName = re.sub('<b>', '', fileName)
-
-                    fileName = re.sub('</b>', '', fileName)
-                    #     文章名字
-                    data.append(fileName)
-                    # 获得当前文章的作者，由于有的文章作者是没有a标签的，所以也需要特殊判断
-                    if (item.find('div', class_="gs_a").find('a')):
-                        for author in item.find('div', class_="gs_a").find('a'):
-                            data.append(author)
+            try:
+                for item in soup.find_all('div', class_="gs_r gs_or gs_scl"):
+                    data = []
+                    item_str = str(item)
+                    # 有可能不存在PDF链接
+                    if re.findall(downLoadFileExist_reg, item_str) == []:
+                        downLoadFilelink = ''
                     else:
-                        for author in item.find('div', class_="gs_a"):
-                            # print(author.split(",")[0])
-                            data.append(author.split(",")[0])
+                        # PDF链接
+                        downLoadFilelink = re.findall(downLoadFileLink_reg, item_str)[0]  # re通过正则表达式查找指定的字符串
+                    # 文章部分内容
+                    content_str = re.findall(content_reg, item_str)[0]
 
-                periodicalTime = re.findall(periodicalTime_reg, content_str)[0]
+                    fileLink = re.findall(fileLink_reg, content_str)[0]
 
-                periodicalTime = re.sub('<b>', '', periodicalTime)
+                    fileName1 = re.findall(fileName_reg, content_str)
 
-                periodicalTime = re.sub('</b>', '', periodicalTime)
+                    # 由于存在HTML格式的文件，所以在此特殊判断，先不对HTML的进行爬取
+                    if len(fileName1) == 0:
+                        # for aName in item.find('h3', class_="gs_rt").find('a'):
+                        #     data.append(aName)
+                        # print(aName)
+                        # print("---")
+                        continue
+                    else:
+                        fileName = re.findall(fileName_reg, content_str)[0]
 
-                periodicalTime = re.sub('\xa0', '', periodicalTime)
+                        fileName = re.sub('<b>', '', fileName)
 
-                quteNum = re.findall(quteNum_reg, item_str)
+                        fileName = re.sub('</b>', '', fileName)
+                        #     文章名字
+                        data.append(fileName)
+                        # 获得当前文章的作者，由于有的文章作者是没有a标签的，所以也需要特殊判断
+                        if (item.find('div', class_="gs_a").find('a')):
+                            for author in item.find('div', class_="gs_a").find('a'):
+                                data.append(author)
+                        else:
+                            for author in item.find('div', class_="gs_a"):
+                                # print(author.split(",")[0])
+                                data.append(author.split(",")[0])
 
-                if len(quteNum) == 0:
-                    quteNum = ''
-                else:
-                    quteNum = quteNum[0]
+                    periodicalTime = re.findall(periodicalTime_reg, content_str)[0]
 
-                # 文章'https://www.mdpi.com/2227-7080/9/1/2'
-                data.append(fileLink)
-                # 'Technologies, 2020 - mdpi.com'
-                data.append(periodicalTime)
+                    periodicalTime = re.sub('<b>', '', periodicalTime)
 
-                # 从中截取年份
-                dateTimePattern = re.compile(r'\d{4}')
-                dateTime = dateTimePattern.findall(periodicalTime)
-                data.append(dateTime[0])
-                # 引用次数
-                data.append(quteNum)
-                # PDF链接'https://www.mdpi.com/2227-7080/9/1/2/pdf'
-                data.append(downLoadFilelink)
+                    periodicalTime = re.sub('</b>', '', periodicalTime)
 
-                datalist.append(data)
+                    periodicalTime = re.sub('\xa0', '', periodicalTime)
 
-            print("第", start_num % 10 + 1, "页完成")
-            print(datalist)
-            # 对于datalist的子序列data而言 0列：文章名 ，1：作者，2：文章地址，3：所属期刊信息 4：年份， 5：引用数 6：pdf地址
-            for data in datalist:
-                mysql = MySQL()
-                mysql.implement(data)
-            print("第", start_num % 10 + 1, "页存储完成")
+                    quteNum = re.findall(quteNum_reg, item_str)
 
+                    if len(quteNum) == 0:
+                        quteNum = ''
+                    else:
+                        quteNum = quteNum[0]
+
+                    # 文章'https://www.mdpi.com/2227-7080/9/1/2'
+                    data.append(fileLink)
+                    # 'Technologies, 2020 - mdpi.com'
+                    data.append(periodicalTime)
+
+                    # 从中截取年份
+                    dateTimePattern = re.compile(r'\d{4}')
+                    dateTime = dateTimePattern.findall(periodicalTime)
+                    data.append(dateTime[0])
+                    # 引用次数
+                    data.append(quteNum)
+                    # PDF链接'https://www.mdpi.com/2227-7080/9/1/2/pdf'
+                    data.append(downLoadFilelink)
+
+                    datalist.append(data)
+
+                print("第", start_num / 10 + 1, "页完成")
+                print(datalist)
+                # 对于datalist的子序列data而言 0列：文章名 ，1：作者，2：文章地址，3：所属期刊信息 4：年份， 5：引用数 6：pdf地址
+                for data in datalist:
+                    mysql = MySQL()
+                    mysql.implement(data)
+                print("第", start_num / 10 + 1, "页存储完成")
+            except:
+                print("第", start_num / 10 + 1, "页发生异常")
+                pass
+                continue
         return "OK"
 
     # 返回抓取到的HTML
