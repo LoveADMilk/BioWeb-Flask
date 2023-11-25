@@ -6,6 +6,9 @@ import re                                   #正则表达式
 import urllib.request,urllib.error          #指定URL，获取数据
 from urllib.error import URLError
 
+#测试一下能不能提交
+
+
 class MySQL():
     def connect(self):
         '''连接MySQL数据库'''
